@@ -1,0 +1,20 @@
+[package]
+name = "easytier-supervisor"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Privileged on-demand supervisor for EasyTier macOS GUI: launchd socket activation, spawn/kill easytier-core, lifecycle follows the GUI control connection"
+license = "Apache-2.0"
+
+[features]
+default = []
+signed-peers = []
+
+[dependencies]
+libc = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+
+[dev-dependencies]
+tempfile = "3"

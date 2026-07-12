@@ -1,0 +1,160 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+  color: var(--p-text-color, #1f2937);
+  background: var(--p-content-background, #ffffff);
+}
+
+#app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--p-content-border-color, #e5e7eb);
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.app-header__title {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.app-header__status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--p-text-muted-color, #6b7280);
+}
+
+.app-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.app-nav {
+  width: 160px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--p-content-border-color, #e5e7eb);
+  padding: 0.75rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.app-nav a {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+  font-size: 0.9rem;
+}
+
+.app-nav a:hover {
+  background: var(--p-content-hover-background, #f3f4f6);
+}
+
+.app-nav a.router-link-exact-active {
+  background: var(--p-highlight-background, #e0e7ff);
+  font-weight: 600;
+}
+
+.app-content {
+  flex: 1;
+  overflow: auto;
+  padding: 1.25rem;
+  min-width: 0;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.page-header h1 {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.card-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.network-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.network-card__name {
+  font-weight: 600;
+}
+
+.network-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.mono-textarea textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.muted {
+  color: var(--p-text-muted-color, #6b7280);
+}
+
+.empty-state {
+  color: var(--p-text-muted-color, #6b7280);
+  padding: 2rem 0;
+  text-align: center;
+}
