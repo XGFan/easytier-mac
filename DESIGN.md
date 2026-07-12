@@ -93,7 +93,18 @@ log_dir = "/Library/Application Support/EasyTier/logs"
 - **冲突检测**:发现非托管 easytier-core 进程或 mihomo TUN 默认路由 → 明确提示(启用全隧道 profile 时警告共存风险)。
 - **dev 联调**:用户态跑 `easytier-supervisor --dev-listen <sock> --config <dev.toml>`(core_path 指 target/debug/easytier-core),GUI 以 `ET_SUPERVISOR_SOCKET` 接入;no-tun 配置的实例可在无 root 下端到端验证(建实例/peer/状态/停止)。
 
-## 9. M0 测试策略
+## 9. M2:native GUI(SwiftUI + Bridge)契约增补
+
+决策记录:GUI 转原生(docs/adr/0001)+ 单一用户所有只读配置(docs/adr/0002);术语见 CONTEXT.md。本节生效后,§8 仅对过渡期保留的 Tauri 版继续有效。
+
+- **目录**:`easytier-mac/app`(SwiftUI 菜单栏应用)+ `easytier-mac/bridge`(cdylib,cargo workspace member);`gui/`(Tauri)原封保留至 native 功能对等,之后一个 commit 整体删除。
+- **配置**:唯一 `~/Library/Application Support/EasyTier/config.toml`,GUI 只读;仅文件缺失时写入一次带注释模板(模板即格式文档,含常用字段说明);**不迁移** profiles/ 存量。校验 = `TomlConfigLoader` + `NetworkConfig::new_from_config` 双层解析。窗口激活时重读重校;连接前必校,失败禁用连接;连接中文件与运行中配置不一致 → 提示「配置已修改,重新连接后生效」。
+- **Bridge 边界**:机制归 Rust——supervisor 协议驱动(含重连退避/takeover)、RPC(run/delete/status)、校验、事件回调;内置 tokio 运行时;结构化数据以 JSON 字符串过 FFI,事件走 C 回调。策略归 Swift——自动重启、启动恢复、设置持久化(UserDefaults;`state.json` 废弃,running 集合退化为 was_connected 布尔)。现有 `gui/src-tauri` 的 supervisor_client/rpc/install/conflict 模块迁入 bridge 复用。
+- **instance_id**:废除「profile id == instance_id」契约,不再写进配置;Swift 侧内存跟踪 run 返回的 id。
+- **UI**:窗口顶部「网络 / 设置」两 tab。网络页自上而下:连接条(状态、连接/断开、校验结果、打开配置)→ 速率图(轮询 rx/tx 差分)→ 节点表(虚拟IPv4/主机名/路由/协议/延迟/上下行/丢包/NAT/版本,本机行置顶;协议列需 bridge 在状态行中补 `get_conn_protos()`)。不做 VPN 门户与事件日志。未安装 supervisor 时网络页显示引导卡。托盘菜单 = 连接/断开 + 打开主窗口 + 退出。关窗进托盘、单实例、busy/takeover 交互沿用 §8。
+- **系统**:目标 macOS 14+;自启 SMAppService(替代 tauri-plugin-autostart);打包 xcodebuild + ad-hoc 签名,安装脚本沿用 scripts/ 模式。
+
+## 10. M0 测试策略
 
 - 单测:协议编解码、状态机(hello/owner/takeover/stop 升级)。
 - 集成测(非 root,`--dev-listen` + 假 core):假 core 为脚本(可选 trap TERM 不退,验证 SIGKILL 升级);覆盖 start/stop/断连即杀/takeover/busy/孤儿扫杀。
