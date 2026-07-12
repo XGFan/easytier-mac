@@ -1,0 +1,86 @@
+# xcodegen spec for the EasyTier native menu-bar app (M2, DESIGN §9).
+#
+# Generate + build (bridge staticlib comes from `cargo build -p easytier-mac-bridge`):
+#   cd easytier-mac/app && xcodegen generate
+#   xcodebuild -project EasyTier.xcodeproj -scheme EasyTier -configuration Debug build
+#
+# The .xcodeproj is generated (git-ignored); only this spec is committed.
+# Toolchain used: Xcode 26.6 / Swift 6.3 / xcodegen 2.45.
+
+name: EasyTier
+
+options:
+  bundleIdPrefix: com.easytier
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: false
+
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "6.0"
+
+targets:
+  EasyTier:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Sources
+        excludes:
+          - "Info.plist"
+      # App 图标(继承自原 Tauri 工程的官方 icon.icns)
+      - path: Resources
+        buildPhase: resources
+    info:
+      path: Info.plist
+      properties:
+        CFBundleIconFile: AppIcon
+        LSUIElement: true
+        CFBundleName: EasyTier
+        CFBundleDisplayName: EasyTier
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSMinimumSystemVersion: "14.0"
+        NSHumanReadableCopyright: "Copyright © 2026 EasyTier."
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.easytier.mac
+        PRODUCT_NAME: EasyTier
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        # Bridge header contract lives in ../bridge/include; the wrapper header
+        # under Sources/ pulls it into the Swift module.
+        SWIFT_OBJC_BRIDGING_HEADER: $(SRCROOT)/Sources/BridgingHeader.h
+        HEADER_SEARCH_PATHS:
+          - $(SRCROOT)/../bridge/include
+        # Rust staticlib produced by `cargo build -p easytier-mac-bridge`.
+        # Linked by full .a path (NOT -l): target/<profile> also contains
+        # libeasytier_mac_bridge.dylib and -l would prefer it, baking an
+        # absolute dev path into the app. app-install.sh overrides
+        # RUST_PROFILE_DIR per cargo profile on the xcodebuild command line.
+        RUST_PROFILE_DIR: $(SRCROOT)/../../target/debug
+        OTHER_LDFLAGS:
+          - $(RUST_PROFILE_DIR)/libeasytier_mac_bridge.a
+          - -framework
+          - Security
+          - -framework
+          - SystemConfiguration
+          - -framework
+          - CoreFoundation
+          - -liconv
+          - -lz
+          - -lc++
+        # Local build produces an unsigned app; the install script does ad-hoc
+        # signing during packaging (Phase 4).
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGNING_ALLOWED: "NO"
+        ENABLE_HARDENED_RUNTIME: "NO"
+      configs:
+        Release:
+          RUST_PROFILE_DIR: $(SRCROOT)/../../target/release

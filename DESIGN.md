@@ -73,7 +73,9 @@ log_dir = "/Library/Application Support/EasyTier/logs"
 - `--dev-listen <path>`:自行 bind unix socket(先 unlink),鉴权退化为 peer uid == 进程 uid;供无 root 集成测试与 GUI 联调。
 - `--config <path>`:覆盖 supervisor.toml 路径(默认见 §1)。
 
-## 8. GUI(M1)契约
+## 8. GUI(M1)契约【已存档】
+
+> Tauri 版 GUI 已在 native 版功能对等验收后整体删除(2026-07-13),本节仅作历史契约存档;现行 GUI 契约见 §9。
 
 | 项 | 值 |
 |---|---|
@@ -97,7 +99,7 @@ log_dir = "/Library/Application Support/EasyTier/logs"
 
 决策记录:GUI 转原生(docs/adr/0001)+ 单一用户所有只读配置(docs/adr/0002);术语见 CONTEXT.md。本节生效后,§8 仅对过渡期保留的 Tauri 版继续有效。
 
-- **目录**:`easytier-mac/app`(SwiftUI 菜单栏应用)+ `easytier-mac/bridge`(cdylib,cargo workspace member);`gui/`(Tauri)原封保留至 native 功能对等,之后一个 commit 整体删除。
+- **目录**:`easytier-mac/app`(SwiftUI 菜单栏应用)+ `easytier-mac/bridge`(cdylib,cargo workspace member);`gui/`(Tauri)已在功能对等验收后整体删除(历史契约存档于 §8)。
 - **配置**:唯一 `~/Library/Application Support/EasyTier/config.toml`,GUI 只读;仅文件缺失时写入一次带注释模板(模板即格式文档,含常用字段说明);**不迁移** profiles/ 存量。校验 = `TomlConfigLoader` + `NetworkConfig::new_from_config` 双层解析。窗口激活时重读重校;连接前必校,失败禁用连接;连接中文件与运行中配置不一致 → 提示「配置已修改,重新连接后生效」。
 - **Bridge 边界**:机制归 Rust——supervisor 协议驱动(含重连退避/takeover)、RPC(run/delete/status)、校验、事件回调;内置 tokio 运行时;结构化数据以 JSON 字符串过 FFI,事件走 C 回调。策略归 Swift——自动重启、启动恢复、设置持久化(UserDefaults;`state.json` 废弃,running 集合退化为 was_connected 布尔)。现有 `gui/src-tauri` 的 supervisor_client/rpc/install/conflict 模块迁入 bridge 复用。
 - **instance_id**:废除「profile id == instance_id」契约,不再写进配置;Swift 侧内存跟踪 run 返回的 id。

@@ -1,0 +1,11 @@
+# xcodegen output — regenerate with `xcodegen generate`.
+*.xcodeproj/
+
+# Build artifacts.
+build/
+DerivedData/
+
+# Generated Info.plist (produced by xcodegen from project.yml).
+Info.plist
+
+.DS_Store
