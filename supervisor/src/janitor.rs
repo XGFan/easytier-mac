@@ -10,13 +10,21 @@
 
 use std::process::Command;
 
+use crate::auth::AuthMode;
 use crate::config::Config;
+use crate::hooks::{self, HookEvent, HookReason};
 
 /// Kill leftover cores whose argv[0] is exactly `config.core_path`.
 ///
 /// `exclude_pid` (and our own pid) are never signalled. Returns the number of
 /// processes killed. Logs each kill to stderr (-> supervisor.err.log).
-pub fn sweep_orphans(config: &Config, exclude_pid: Option<i32>) -> usize {
+///
+/// If anything was killed we fire the `down` (janitor) hook — a backstop so a
+/// crashed predecessor that never ran its own `down` still gets cleaned up (plan
+/// §1). This never double-fires for a core that stop/exit already handled: those
+/// paths reap their core before sweeping, so it is gone from `ps` and not
+/// counted here — only a genuinely orphaned process makes `killed > 0`.
+pub fn sweep_orphans(config: &Config, auth: AuthMode, exclude_pid: Option<i32>) -> usize {
     let self_pid = std::process::id() as i32;
     let mut killed = 0;
 
@@ -59,6 +67,13 @@ pub fn sweep_orphans(config: &Config, exclude_pid: Option<i32>) -> usize {
                 eprintln!("janitor: kill pid={pid} failed: {err}");
             }
         }
+    }
+
+    if killed > 0 {
+        // Detached: activation continues serving; the post-death sweeps that pass
+        // through here have already run their own `down`, so this only adds up for
+        // truly orphaned processes.
+        let _ = hooks::run_hook(config, auth, HookEvent::Down, Some(HookReason::Janitor));
     }
     killed
 }

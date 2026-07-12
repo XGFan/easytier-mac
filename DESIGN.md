@@ -31,6 +31,8 @@ proto = 1
 owner_uid = 501            # 安装时的用户 uid,连接鉴权用
 core_path = "/Library/Application Support/EasyTier/bin/easytier-core"
 log_dir = "/Library/Application Support/EasyTier/logs"
+hooks_dir = "/Library/Application Support/EasyTier/hooks"   # 可选,默认 <安装根>/hooks
+hook_timeout_secs = 30                                       # 可选,默认 30
 ```
 
 ## 4. 控制协议 v1(JSON Lines,UTF-8,每行一个对象)
@@ -61,6 +63,7 @@ log_dir = "/Library/Application Support/EasyTier/logs"
 - **spawn**:随机空闲端口(bind 127.0.0.1:0 探测后释放,竞态窗口接受);argv = `[core_path, --daemon, --rpc-portal, 127.0.0.1:<port>]`,并用 `CommandExt::arg0` 显式设 argv[0]=core_path 配合 janitor 识别;**不传** `--rpc-portal-whitelist`(core 默认白名单已是 `127.0.0.0/8, ::1/128`,该旗标冗余);清空 `ET_*` 环境变量(env_clear 后按需补 PATH);cwd = 安装根(log_dir 的父目录);子进程 stdout/stderr 追加到 `logs/core.out.log`。
 - **停止升级**:SIGTERM → 100ms 轮询共 5s → SIGKILL;必须 waitpid 收尸后才能宣告 stopped / 退出(防两代竞态)。
 - `--daemon` 已实证不 fork/detach(easytier/src/core.rs:1375 仅注册 DaemonGuard),子进程跟踪成立;此假设写进代码注释。
+- **hook 时序**:`up.sh` 在 spawn 成功后触发;`down.sh` 在"停止升级"waitpid 收尸后、core 意外退出、以及本节孤儿对账击杀数 >0 时各触发一次(reason 分别为 `requested`/`owner_drop`、`core_exited`、`janitor`)。完整事件表、环境变量与安全校验见「Hooks」一节。
 
 ## 6. 鉴权(M0 = dev 级)
 
@@ -72,6 +75,54 @@ log_dir = "/Library/Application Support/EasyTier/logs"
 - 默认:从 launchd 领 socket(`launch_activate_socket("Listeners")` FFI,拿不到 = 非 launchd 环境,报错退出)。
 - `--dev-listen <path>`:自行 bind unix socket(先 unlink),鉴权退化为 peer uid == 进程 uid;供无 root 集成测试与 GUI 联调。
 - `--config <path>`:覆盖 supervisor.toml 路径(默认见 §1)。
+
+## Hooks(生命周期钩子)
+
+supervisor 在 core 生命周期的固定节点以 root 执行 `<hooks_dir>/{up,down}.sh`(路径见 §3 `hooks_dir`),用于让用户在 core 启停时联动系统状态(典型场景:连接时切换 DNS,断开时恢复)。协议/bridge/GUI 均不改动,事件与 reason 全部由 supervisor 侧枚举决定,**任何客户端数据都不会进入 hook 的参数或环境变量**。
+
+### 事件表
+
+| 事件 | 触发时机 | 脚本 | `EASYTIER_REASON` |
+|---|---|---|---|
+| up | core 进程 spawn 成功后 | `<hooks_dir>/up.sh` | (无) |
+| down | `stop` 流程 waitpid 确认 core 已死亡后 | `<hooks_dir>/down.sh` | `requested`(用户主动断开)/ `owner_drop`(owner 连接断开触发的收尾) |
+| down | core 进程意外退出 | `<hooks_dir>/down.sh` | `core_exited` |
+| down | 启动时孤儿对账(§5)击杀数 >0 | `<hooks_dir>/down.sh` | `janitor` |
+
+脚本文件不存在 = 静默跳过(不算错误,不记日志);脚本存在但未通过下方权限校验 = 拒绝执行 + 记 `logs/supervisor.err.log`。
+
+### 环境变量
+
+执行前先 `env_clear`,只注入:
+
+- `PATH`
+- `EASYTIER_EVENT` = `up` | `down`
+- `EASYTIER_REASON`(仅 down 事件带,取值见上表)
+
+### 安全校验(生产模式,全部硬性)
+
+执行前对脚本文件做类 sudoers/cron 的校验,任一不满足即拒绝执行:
+
+1. 属主 `root:wheel`
+2. 是常规文件(不是符号链接/设备文件等)
+3. mode 含属主可执行位(`0100`)
+4. **非 group/world 可写**
+
+`--dev-listen` 开发模式下校验放宽为「属主 == 进程 uid、非 group/world 可写」,与 `auth.rs` 既有的 dev 鉴权放宽模式对齐,便于无 root 集成测试。**生产部署必须走上面的 4 条**,不要依赖开发模式的放宽规则。
+
+### 超时与日志
+
+- 执行方式:`tokio::process`,cwd = 安装根;stdout/stderr 追加写入 `<log_dir>/hooks.log`(install.sh 预创建,root:wheel 0644)。
+- 超时:默认 `hook_timeout_secs = 30`(见 §3),超时 SIGKILL 并记日志;不影响 supervisor 状态机(hook 是后台任务,不阻塞 spawn/stop 主流程)。
+- 例外:supervisor 退出收尾路径(owner 断连触发的 stop)会 **await** 尚未完成的 down hook,但等待时间有上界(≤ `hook_timeout_secs`),不会无限期挂起。
+
+### 脚本幂等要求
+
+supervisor 可能在崩溃恢复、janitor 兜底等场景下重复调用同一事件的脚本(例如 down 在 DNS 已经是 DHCP 状态下再次被调用),**脚本必须可安全重复执行**。用"设置为目标状态"而不是"追加/切换"来实现天然幂等,是最简单的做法。
+
+### 示例脚本
+
+`easytier-mac/scripts/hooks-examples/{up.sh,down.sh}` 提供一份 DNS 切换示例(连接时把 Wi-Fi/有线等所有启用中的网络服务 DNS 设为目标地址,断开时恢复 DHCP),含安装方法(`sudo cp` + `chown root:wheel` + `chmod 755`)与幂等写法,可直接参考或改造。
 
 ## 8. GUI(M1)契约【已存档】
 

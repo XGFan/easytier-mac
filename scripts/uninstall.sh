@@ -11,8 +11,10 @@
 #   - 按完整路径精确终止残留的受管 easytier-core(绝不按进程名模糊匹配,
 #     用户机器上可能自己跑着同名的 ~/.bin/easytier-core);
 #   - 删除 plist、控制 socket 文件;
-#   - 整体删除 /Library/Application Support/EasyTier 安装目录
-#     (路径全部写死字面量,不用变量拼接,防止变量被污染导致误删);
+#   - 删除安装目录下除 hooks/ 以外的内容(bin/、supervisor.toml、logs/,
+#     包括 logs/hooks.log);hooks/ 目录及其中的用户脚本(up.sh/down.sh 等)
+#     予以保留 —— 那是用户资产(DNS 切换等自定义逻辑),卸载 supervisor
+#     不应该连带销毁用户配置好的 hook 脚本,便于重装后免于重新部署;
 #   - 每一步结果逐项回显,便于排查。
 #
 # 契约来源:easytier-mac/DESIGN.md §1。
@@ -75,11 +77,18 @@ else
   log "  -> 不存在,跳过。"
 fi
 
-# ---- 6. 删除安装目录(路径写死字面量,防止误删) ----
-log "删除安装目录: /Library/Application Support/EasyTier"
+# ---- 6. 清理安装目录(路径写死字面量,防止误删);保留 hooks/ ----
+# hooks/ 目录及其中的用户脚本(up.sh/down.sh 等)故意不删 —— 那是用户
+# 资产(DNS 切换等自定义逻辑),卸载 supervisor 不该连带销毁,重装后可直接生效。
+log "清理安装目录: /Library/Application Support/EasyTier(保留 hooks/ 及其中脚本)"
 if [ -d "/Library/Application Support/EasyTier" ]; then
-  rm -rf "/Library/Application Support/EasyTier"
-  log "  -> 已删除。"
+  rm -rf "/Library/Application Support/EasyTier/bin"
+  rm -f "/Library/Application Support/EasyTier/supervisor.toml"
+  rm -rf "/Library/Application Support/EasyTier/logs"
+  log "  -> 已删除 bin/、supervisor.toml、logs/(含 hooks.log)。"
+  if [ -d "/Library/Application Support/EasyTier/hooks" ]; then
+    log "  -> hooks/ 及其中的用户脚本予以保留(不删除)。"
+  fi
 else
   log "  -> 不存在,跳过。"
 fi

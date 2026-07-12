@@ -12,6 +12,7 @@ use std::time::Duration;
 use crate::auth::{self, AuthMode};
 use crate::config::Config;
 use crate::core_proc::{self, CoreProc};
+use crate::hooks::HookReason;
 use crate::proto::{self, Cmd, CoreState, Event, PROTO_VERSION};
 
 /// Hard cap on a single control line. Legit commands are ~100 bytes; this bounds
@@ -265,11 +266,16 @@ pub fn handle_connection(shared: Arc<Shared>, stream: UnixStream) {
             st.owner = None;
         }
     }
-    core_proc::stop(&shared);
+    let outcome = core_proc::stop(&shared, HookReason::OwnerDrop);
     // Sweeping with exclude=None is safe here: our core (if any) was just reaped
     // by stop(), no owner remains, and this single supervisor is about to exit.
-    crate::janitor::sweep_orphans(&shared.config, None);
+    crate::janitor::sweep_orphans(&shared.config, shared.auth, None);
     crate::janitor::cleanup_routes(&shared.config);
+    // Await the `down` hook (bounded by hook_timeout) so `exit(0)` below does not
+    // cut a still-running down script short (plan §2.5).
+    if let Some(h) = outcome.hook {
+        h.join();
+    }
     std::process::exit(0);
 }
 
@@ -341,8 +347,10 @@ fn run_command_loop<R: BufRead>(
                 let _ = write_locked(writer, &Event::Status { core, pid, rpc_port });
             }
             Ok(Cmd::Stop) => {
-                let was_running = core_proc::stop(shared);
-                let reason = if was_running {
+                // Detach the `down` hook (drop the handle): this connection lives
+                // on, so the hook must not block the command loop.
+                let outcome = core_proc::stop(shared, HookReason::Requested);
+                let reason = if outcome.was_running {
                     "requested"
                 } else {
                     "already_stopped"

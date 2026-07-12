@@ -24,6 +24,7 @@ readonly SOCK_PATH="/var/run/easytier.supervisor.sock"
 readonly INSTALL_ROOT="/Library/Application Support/EasyTier"
 readonly BIN_DIR="${INSTALL_ROOT}/bin"
 readonly LOG_DIR="${INSTALL_ROOT}/logs"
+readonly HOOKS_DIR="${INSTALL_ROOT}/hooks"
 readonly SUPERVISOR_TOML="${INSTALL_ROOT}/supervisor.toml"
 readonly SUPERVISOR_DST="${BIN_DIR}/easytier-supervisor"
 readonly CORE_DST="${BIN_DIR}/easytier-core"
@@ -107,14 +108,15 @@ fi
 log "创建目录树..."
 mkdir -p "$BIN_DIR"
 mkdir -p "$LOG_DIR"
-chown root:wheel "$INSTALL_ROOT" "$BIN_DIR" "$LOG_DIR"
-chmod 0755 "$INSTALL_ROOT" "$BIN_DIR" "$LOG_DIR"
+mkdir -p "$HOOKS_DIR"
+chown root:wheel "$INSTALL_ROOT" "$BIN_DIR" "$LOG_DIR" "$HOOKS_DIR"
+chmod 0755 "$INSTALL_ROOT" "$BIN_DIR" "$LOG_DIR" "$HOOKS_DIR"
 
 # 预创建日志文件并锁定权限为 0644,保证普通用户可读(DESIGN §1);
 # 若不预创建,launchd/daemon 首次写入时可能按更严格的 umask 创建文件
-touch "${LOG_DIR}/supervisor.err.log" "${LOG_DIR}/core.out.log"
-chown root:wheel "${LOG_DIR}/supervisor.err.log" "${LOG_DIR}/core.out.log"
-chmod 0644 "${LOG_DIR}/supervisor.err.log" "${LOG_DIR}/core.out.log"
+touch "${LOG_DIR}/supervisor.err.log" "${LOG_DIR}/core.out.log" "${LOG_DIR}/hooks.log"
+chown root:wheel "${LOG_DIR}/supervisor.err.log" "${LOG_DIR}/core.out.log" "${LOG_DIR}/hooks.log"
+chmod 0644 "${LOG_DIR}/supervisor.err.log" "${LOG_DIR}/core.out.log" "${LOG_DIR}/hooks.log"
 
 # ---- 拷贝二进制(root:wheel 0755) ----
 log "安装二进制..."

@@ -9,6 +9,7 @@ mod activation;
 mod auth;
 mod config;
 mod core_proc;
+mod hooks;
 mod janitor;
 mod proto;
 mod server;
@@ -82,12 +83,6 @@ fn main() {
         }
     };
 
-    // Activation-time orphan reconciliation (DESIGN §5): kill any leftover core
-    // from a crashed previous supervisor before we start serving. exclude=None
-    // is safe here — this is a fresh process that has not spawned a core yet, so
-    // nothing of ours is running.
-    janitor::sweep_orphans(&config, None);
-
     let auth = match &args.dev_listen {
         // SAFETY: geteuid() is always successful.
         Some(_) => AuthMode::Dev {
@@ -97,6 +92,14 @@ fn main() {
             owner_uid: config.owner_uid,
         },
     };
+
+    // Activation-time orphan reconciliation (DESIGN §5): kill any leftover core
+    // from a crashed previous supervisor before we start serving. exclude=None
+    // is safe here — this is a fresh process that has not spawned a core yet, so
+    // nothing of ours is running. A kill here also fires the `down` (janitor)
+    // hook: the backstop for a predecessor that crashed without running `down`
+    // (e.g. leaving DNS overridden). `auth` selects the hook security mode.
+    janitor::sweep_orphans(&config, auth, None);
 
     let listeners = match obtain_listeners(&args) {
         Ok(l) => l,

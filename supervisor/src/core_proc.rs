@@ -21,6 +21,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use crate::config::Config;
+use crate::hooks::{self, HookEvent, HookHandle, HookReason};
 use crate::proto::Event;
 use crate::server::Shared;
 
@@ -122,6 +123,11 @@ pub fn start(shared: &Arc<Shared>) -> Result<(i32, u16), String> {
     drop(st);
 
     spawn_monitor(shared.clone(), child, pid);
+
+    // Core process now exists: fire the `up` hook (detached — it must not block
+    // the state machine). Semantics are "core process started", which may be
+    // before the TUN is ready; scripts that need the interface retry (DESIGN).
+    let _ = hooks::run_hook(&shared.config, shared.auth, HookEvent::Up, None);
     Ok((pid, port))
 }
 
@@ -232,6 +238,17 @@ fn handle_core_exit(shared: &Arc<Shared>, pid: i32, info: ExitInfo) {
         signal: info.signal,
     });
 
+    // Mirror that transition to the `down` hook. Detached: nothing here exits, so
+    // there is no need to await it. This is mutually exclusive with the `stop`
+    // path's `down` — a requested stop takes the early `return` above and never
+    // reaches this branch, so a given core death fires exactly one `down`.
+    let _ = hooks::run_hook(
+        &shared.config,
+        shared.auth,
+        HookEvent::Down,
+        Some(HookReason::CoreExited),
+    );
+
     // Guarded orphan sweep. Because `start()` spawns under `st`, observing
     // `Stopped` under the lock means no core process exists; holding the lock
     // across the sweep stops a concurrent (idempotent) `start()` from racing in
@@ -239,10 +256,22 @@ fn handle_core_exit(shared: &Arc<Shared>, pid: i32, info: ExitInfo) {
     // restarted, `st.core` is `Running` and we leave that core untouched.
     let st = shared.st.lock().unwrap();
     if matches!(st.core, CoreProc::Stopped) {
-        crate::janitor::sweep_orphans(&shared.config, None);
+        crate::janitor::sweep_orphans(&shared.config, shared.auth, None);
         crate::janitor::cleanup_routes(&shared.config);
     }
     drop(st);
+}
+
+/// Result of a `stop()`: whether a core was actually reaped, and (if so) the
+/// `down` hook it fired.
+pub struct StopOutcome {
+    /// True if a core was running (and is now stopped), false if none was.
+    pub was_running: bool,
+    /// The `down` hook spawned for this stop, if a core was reaped and a hook
+    /// script was present. The owner-disconnect exit path joins this (bounded by
+    /// the hook timeout) so a `down` script is not cut short by `exit(0)`; every
+    /// other caller drops it to detach.
+    pub hook: Option<HookHandle>,
 }
 
 /// Request the core stop and block until the monitor has reaped it.
@@ -251,21 +280,37 @@ fn handle_core_exit(shared: &Arc<Shared>, pid: i32, info: ExitInfo) {
 /// SIGKILL after `TERM_GRACE`, and reaps), then waits for `Stopped`. `stop()`
 /// itself never signals — see the module-level pid-reuse invariant.
 ///
-/// Returns true if a core was running (and is now stopped), false if none was.
-pub fn stop(shared: &Arc<Shared>) -> bool {
+/// Once the core is confirmed reaped, fires the `down` hook with `reason`
+/// (`requested` for a `stop` command, `owner_drop` for a disconnect). When no
+/// core was running there is nothing to tear down, so no hook fires.
+pub fn stop(shared: &Arc<Shared>, reason: HookReason) -> StopOutcome {
     let mut st = shared.st.lock().unwrap();
     match &mut st.core {
         CoreProc::Running(r) => r.stop_requested = true,
-        CoreProc::Stopped => return false,
+        CoreProc::Stopped => {
+            return StopOutcome {
+                was_running: false,
+                hook: None,
+            }
+        }
     }
     shared.cv.notify_all();
 
     loop {
         if matches!(st.core, CoreProc::Stopped) {
-            return true;
+            break;
         }
         // Bounded wait so a missed notify can never wedge us permanently.
         let (guard, _) = shared.cv.wait_timeout(st, Duration::from_millis(200)).unwrap();
         st = guard;
+    }
+    drop(st);
+
+    // Core is reaped (waitpid confirmed via the monitor's transition to
+    // `Stopped`): now safe to run the `down` hook.
+    let hook = hooks::run_hook(&shared.config, shared.auth, HookEvent::Down, Some(reason));
+    StopOutcome {
+        was_running: true,
+        hook,
     }
 }

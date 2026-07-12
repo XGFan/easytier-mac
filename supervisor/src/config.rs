@@ -3,6 +3,10 @@
 use std::io;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
+
+/// Default hook timeout when `hook_timeout_secs` is absent (see `hooks.rs`).
+const DEFAULT_HOOK_TIMEOUT_SECS: u64 = 30;
 
 /// Default config path (DESIGN §1), overridable with `--config`.
 pub const DEFAULT_CONFIG_PATH: &str = "/Library/Application Support/EasyTier/supervisor.toml";
@@ -18,6 +22,13 @@ pub struct Config {
     pub core_path: String,
     /// Directory for core.out.log (DESIGN §5).
     pub log_dir: String,
+    /// Directory holding lifecycle hook scripts (`up.sh`/`down.sh`). Absent =>
+    /// `<install_root>/hooks`. See `hooks.rs`.
+    #[serde(default)]
+    pub hooks_dir: Option<String>,
+    /// Per-hook wall-clock budget before SIGKILL, in seconds. Absent => 30.
+    #[serde(default)]
+    pub hook_timeout_secs: Option<u64>,
 }
 
 impl Config {
@@ -43,6 +54,20 @@ impl Config {
             .parent()
             .map(Path::to_path_buf)
             .unwrap_or_else(|| PathBuf::from("/"))
+    }
+
+    /// Directory holding hook scripts: the configured `hooks_dir`, else
+    /// `<install_root>/hooks`.
+    pub fn hooks_dir(&self) -> PathBuf {
+        match &self.hooks_dir {
+            Some(d) => PathBuf::from(d),
+            None => self.install_root().join("hooks"),
+        }
+    }
+
+    /// Wall-clock budget for one hook run before SIGKILL.
+    pub fn hook_timeout(&self) -> Duration {
+        Duration::from_secs(self.hook_timeout_secs.unwrap_or(DEFAULT_HOOK_TIMEOUT_SECS))
     }
 }
 
