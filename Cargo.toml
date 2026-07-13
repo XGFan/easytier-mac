@@ -1,0 +1,27 @@
+[workspace]
+resolver = "2"
+members = [
+    "supervisor",
+    "bridge",
+]
+# vendor/EasyTier 是 EasyTier fork 的 git submodule,自带独立 workspace;
+# exclude 防止 cargo 把 bridge 的 path 依赖自动并入本 workspace。
+exclude = ["vendor"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.95"
+
+# 与 vendor/EasyTier 根 workspace 的 profile 保持一致:bridge 内嵌的
+# easytier 库在本 workspace 构建,行为需与 fork 内构建相同(尤其 release
+# 的 panic=abort —— cdylib 里 Rust panic 直接 abort 宿主 app,不做 unwind)。
+[profile.dev]
+panic = "unwind"
+debug = 2
+
+[profile.release]
+panic = "abort"
+lto = true
+codegen-units = 1
+opt-level = 3
+strip = true

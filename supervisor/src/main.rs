@@ -1,5 +1,5 @@
 //! easytier-supervisor: privileged on-demand supervisor for the EasyTier macOS
-//! GUI. Contract: easytier-mac/DESIGN.md (M0).
+//! GUI. Contract: DESIGN.md (M0).
 //!
 //! Zero-residency model: launchd activates us on the first socket connection;
 //! we serve exactly one owner (the GUI), spawn/reap a single easytier-core, and

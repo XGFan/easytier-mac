@@ -11,11 +11,11 @@
 # 存活、以及新 ppid 是否变成 1,从而实测而非假设这个前提成立。
 #
 # 用法:
-#   easytier-mac/scripts/m0c-orphan.sh [core二进制路径]
-#   默认使用 <仓库根>/target/debug/easytier-core。
+#   scripts/m0c-orphan.sh [core二进制路径]
+#   默认使用 <仓库根>/vendor/EasyTier/target/debug/easytier-core(scripts/build-core.sh 产物)。
 #
 # 前置条件:非 root;已执行
-#   cargo build -p easytier --bin easytier-core
+#   scripts/build-core.sh
 # 不传任何组网参数,不建 TUN,无需 sudo。
 #
 # 产物:~/et-m0-verify/<时间戳>-m0c/(core stdout/stderr 日志、core pid 文件)
@@ -23,12 +23,12 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-CORE_BIN="${1:-$REPO_ROOT/target/debug/easytier-core}"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CORE_BIN="${1:-$REPO_ROOT/vendor/EasyTier/target/debug/easytier-core}"
 
 if [[ ! -x "$CORE_BIN" ]]; then
     echo "FATAL: core binary not found or not executable: $CORE_BIN" >&2
-    echo "       run: cargo build -p easytier --bin easytier-core" >&2
+    echo "       run: scripts/build-core.sh" >&2
     exit 1
 fi
 

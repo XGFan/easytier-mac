@@ -1,7 +1,7 @@
 # xcodegen spec for the EasyTier native menu-bar app (M2, DESIGN §9).
 #
 # Generate + build (bridge staticlib comes from `cargo build -p easytier-mac-bridge`):
-#   cd easytier-mac/app && xcodegen generate
+#   cd app && xcodegen generate
 #   xcodebuild -project EasyTier.xcodeproj -scheme EasyTier -configuration Debug build
 #
 # The .xcodeproj is generated (git-ignored); only this spec is committed.
@@ -62,7 +62,7 @@ targets:
         # libeasytier_mac_bridge.dylib and -l would prefer it, baking an
         # absolute dev path into the app. app-install.sh overrides
         # RUST_PROFILE_DIR per cargo profile on the xcodebuild command line.
-        RUST_PROFILE_DIR: $(SRCROOT)/../../target/debug
+        RUST_PROFILE_DIR: $(SRCROOT)/../target/debug
         OTHER_LDFLAGS:
           - $(RUST_PROFILE_DIR)/libeasytier_mac_bridge.a
           - -framework
@@ -83,4 +83,4 @@ targets:
         ENABLE_HARDENED_RUNTIME: "NO"
       configs:
         Release:
-          RUST_PROFILE_DIR: $(SRCROOT)/../../target/release
+          RUST_PROFILE_DIR: $(SRCROOT)/../target/release

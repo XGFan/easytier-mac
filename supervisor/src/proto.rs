@@ -1,6 +1,6 @@
 //! Control protocol v1 (JSON Lines, UTF-8, one object per line).
 //!
-//! Contract: `easytier-mac/DESIGN.md` §4. Client sends `cmd` objects,
+//! Contract: `DESIGN.md` §4. Client sends `cmd` objects,
 //! supervisor replies/pushes `event` objects. The first client message on a
 //! connection must be `hello`; any other `cmd` before `hello` is rejected.
 

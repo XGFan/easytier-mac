@@ -13,7 +13,7 @@
 # 非 group/world 可写;任一不满足会拒绝执行并记 <安装根>/logs/supervisor.err.log。
 # 部署后请务必确认权限(chown/chmod 如上),否则 hook 会被静默拒绝执行。
 #
-# ---- 触发时机与环境变量(详见 easytier-mac/DESIGN.md「Hooks」一节) ----
+# ---- 触发时机与环境变量(详见 DESIGN.md「Hooks」一节) ----
 #   EASYTIER_EVENT=down
 #   EASYTIER_REASON 取以下四种之一:
 #     requested   —— 用户主动断开(GUI 点断开 / cli stop)

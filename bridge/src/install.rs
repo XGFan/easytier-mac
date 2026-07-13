@@ -41,14 +41,14 @@ pub fn installation_status() -> InstallationStatus {
 
 /// Repo root, resolved from the crate manifest dir at compile time. Works for
 /// dev runs (`cargo`/`target`); a bundled app would ship the scripts as
-/// resources (M2). This crate lives at `easytier-mac/bridge`, so the repo root is
-/// two levels up (the Tauri GUI at `easytier-mac/gui/src-tauri` was three).
+/// resources (M2). This crate lives at `bridge/`, so the repo root is one
+/// level up.
 fn repo_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join("..")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..")
 }
 
 fn scripts_dir() -> PathBuf {
-    repo_root().join("easytier-mac").join("scripts")
+    repo_root().join("scripts")
 }
 
 fn dev_bin(name: &str) -> PathBuf {
@@ -64,9 +64,16 @@ pub fn run_install(
     let supervisor_bin = supervisor_bin
         .map(PathBuf::from)
         .unwrap_or_else(|| dev_bin("easytier-supervisor"));
-    let core_bin = core_bin
-        .map(PathBuf::from)
-        .unwrap_or_else(|| dev_bin("easytier-core"));
+    // easytier-core is not built in this workspace: the dev binary lives in the
+    // vendor submodule's own target dir (produced by scripts/build-core.sh).
+    let core_bin = core_bin.map(PathBuf::from).unwrap_or_else(|| {
+        repo_root()
+            .join("vendor")
+            .join("EasyTier")
+            .join("target")
+            .join("debug")
+            .join("easytier-core")
+    });
     let script = scripts_dir().join("install.sh");
 
     if !script.exists() {

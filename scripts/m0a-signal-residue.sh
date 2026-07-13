@@ -14,7 +14,7 @@
 # `"$CORE_BIN" ... &` 之后的 `$!` 从头到尾就是要跟踪、发信号、waitpid 的
 # 那个 pid,不存在"真正干活的进程是孙进程"的问题。
 #
-# macOS 全隧道路由的已知形态(见 easytier/src/instance/virtual_nic.rs 的
+# macOS 全隧道路由的已知形态(见 vendor/EasyTier/easytier/src/instance/virtual_nic.rs 的
 # MACOS_SPLIT_DEFAULT_ROUTES 与 macos_bypass 模块,commit c23ce668):
 #   - 0.0.0.0/0 被拆成 8 条经由 TUN 自身地址的网关型路由:
 #       1.0.0.0/8  2.0.0.0/7  4.0.0.0/6  8.0.0.0/5
@@ -31,7 +31,7 @@
 #   - 一个新增的 utunN 接口
 #
 # 用法:
-#   sudo easytier-mac/scripts/m0a-signal-residue.sh [--round term|kill|both] <core二进制> <config.toml>
+#   sudo scripts/m0a-signal-residue.sh [--round term|kill|both] <core二进制> <config.toml>
 #   --round 默认 both(TERM 轮 + KILL 轮各跑一次)。
 #   若 TERM 轮结束后 utun/路由没有回到 baseline,KILL 轮会被跳过(报告里会
 #   说明原因,避免把 TERM 的残留也算成 KILL 的);清理残留后可以用

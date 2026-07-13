@@ -17,7 +17,7 @@
 #     不应该连带销毁用户配置好的 hook 脚本,便于重装后免于重新部署;
 #   - 每一步结果逐项回显,便于排查。
 #
-# 契约来源:easytier-mac/DESIGN.md §1。
+# 契约来源:DESIGN.md §1。
 
 set -euo pipefail
 

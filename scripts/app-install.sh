@@ -22,8 +22,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-APP_DIR="${REPO_ROOT}/easytier-mac/app"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+APP_DIR="${REPO_ROOT}/app"
 DEST_APP="/Applications/EasyTier.app"
 readonly BUNDLE_ID="com.easytier.mac"
 # 同时覆盖原生与 Tauri 两代可执行名,防护逻辑对两者一致生效

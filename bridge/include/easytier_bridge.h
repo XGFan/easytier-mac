@@ -1,7 +1,7 @@
 /*
  * easytier_bridge.h — easytier-mac Bridge 的 C API 契约(手写维护,无 cbindgen)。
  *
- * 契约来源:easytier-mac/DESIGN.md §9、docs/adr/0001。本头文件是 Rust 实现
+ * 契约来源:DESIGN.md §9、docs/adr/0001。本头文件是 Rust 实现
  * (bridge/src/ffi.rs)与 Swift 调用方(app/ 的桥接头)之间唯一的真理源;
  * 两侧改动必须同步此文件。
  *

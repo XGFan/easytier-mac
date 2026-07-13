@@ -1,7 +1,7 @@
 //! Client-side view of the supervisor control protocol v1
 //! (JSON Lines, UTF-8, one object per line).
 //!
-//! Authoritative contract: `easytier-mac/DESIGN.md` §4. The supervisor crate owns
+//! Authoritative contract: `DESIGN.md` §4. The supervisor crate owns
 //! the server-side `proto.rs`; this module is an independent client-side mirror so
 //! the GUI does not need to depend on the supervisor binary crate. The GUI sends
 //! `Cmd` objects and receives `Event` objects.

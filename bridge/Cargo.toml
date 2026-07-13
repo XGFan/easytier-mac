@@ -21,7 +21,7 @@ uuid = { version = "1", features = ["v4", "serde"] }
 url = "2.5"
 
 # RPC client + config parsing reuse the easytier crate public API only.
-easytier = { path = "../../easytier" }
+easytier = { path = "../vendor/EasyTier/easytier" }
 # 校验错误诊断:语法错误时重新解析拿行列号(与 easytier 同版本,共享编译产物)。
 toml = "0.8"
 

@@ -13,7 +13,7 @@
 #     (RunAtLoad=false + socket 激活,注册后不应有进程常驻,这是预期);
 #   - 幂等:可重复执行,会先卸载旧 launchd 注册、温和终止受管旧进程、覆盖旧文件。
 #
-# 契约来源:easytier-mac/DESIGN.md §1-§3,改动路径/键值前请先同步该文档。
+# 契约来源:DESIGN.md §1-§3,改动路径/键值前请先同步该文档。
 
 set -euo pipefail
 

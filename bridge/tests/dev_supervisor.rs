@@ -84,7 +84,7 @@ fn target_debug() -> PathBuf {
     if let Some(dir) = std::env::var_os("CARGO_TARGET_DIR") {
         PathBuf::from(dir).join("debug")
     } else {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/debug")
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../target/debug")
     }
 }
 
