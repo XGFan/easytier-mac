@@ -11,9 +11,10 @@
 #   (submodule 有自己的 workspace,target 目录也在 submodule 内,
 #    与本仓库根的 target/ 互不干扰。)
 #
-# 说明:core 二进制必须从 vendor/EasyTier(XGFan fork,带 macOS 全隧道修复)
-# 构建,与 bridge 链接的 easytier 库同一 commit,保证 RPC 协议匹配;
-# 不要用上游发布的官方二进制替代。构建依赖 protoc(brew install protobuf)。
+# 说明:与 bridge 链接的 easytier 库同一 commit 构建,保证 RPC 协议匹配。
+# fork 的 macOS 全隧道修复只在全隧道场景(0.0.0.0/0 拆分路由 / exit node)
+# 生效:该场景必须用本脚本构建的 core;非全隧道场景可用官方同版本二进制
+# 替代(scripts/fetch-official-core.sh)。构建依赖 protoc(brew install protobuf)。
 
 set -euo pipefail
 

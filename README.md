@@ -40,7 +40,9 @@ macOS 原生 [EasyTier](https://github.com/EasyTier/EasyTier) 客户端:SwiftUI 
 
 ## 对 EasyTier 的依赖
 
-bridge 以 path 依赖使用 submodule 里的 easytier 库(仅公开 API:RPC 客户端、配置解析),supervisor 拉起的 `easytier-core` 二进制也从同一 submodule 构建。**一个 submodule pin 同时钉死"链接的库"和"运行的二进制"**,保证两者 RPC 协议永远匹配;且 core 必须带 fork 的 macOS 全隧道修复,不能用上游官方产物替代。为什么不用 cargo git 依赖,见 [ADR-0003](docs/adr/0003-standalone-repo-with-vendored-fork-submodule.md)。
+bridge 以 path 依赖使用 submodule 里的 easytier 库(仅公开 API:RPC 客户端、配置解析),supervisor 拉起的 `easytier-core` 二进制也从同一 submodule 构建。**一个 submodule pin 同时钉死"链接的库"和"运行的二进制"**,保证两者 RPC 协议永远匹配。为什么不用 cargo git 依赖,见 [ADR-0003](docs/adr/0003-standalone-repo-with-vendored-fork-submodule.md)。
+
+fork 的 macOS 全隧道修复不改 RPC/配置面,且只在全隧道场景(`0.0.0.0/0` 拆分路由 / exit node)生效:**全隧道场景必须用 fork 构建的 core**(`scripts/build-core.sh`);非全隧道场景可以用官方同版本二进制替代,见[「使用官方 core」](#使用官方-core非全隧道)。
 
 ## 构建与安装
 
@@ -71,6 +73,20 @@ scripts/app-install.sh --release
 配置文件:`~/Library/Application Support/EasyTier/config.toml`(EasyTier 标准 TOML 配置;首启缺失时 GUI 写入一次带注释模板,此后永不改写)。
 
 DNS 等联动:把 `scripts/hooks-examples/{up.sh,down.sh}` 改造后装进 `/Library/Application Support/EasyTier/hooks/`(权限要求见脚本头注释与 DESIGN.md「Hooks」)。
+
+### 使用官方 core(非全隧道)
+
+配置不涉及全隧道时,可跳过本地编译,直接用官方 release 二进制(版本自动对齐 vendor pin):
+
+```bash
+scripts/fetch-official-core.sh      # 产物 target/official/easytier-core,含冒烟校验
+
+# 替换已安装的 core(GUI 先断开连接,重连后生效)
+sudo install -o root -g wheel -m 0755 target/official/easytier-core \
+  "/Library/Application Support/EasyTier/bin/easytier-core"
+```
+
+全新安装时也可以把上面第 3 步 `install.sh` 的 `--core-bin` 直接指到该产物。切回 fork 版:`scripts/build-core.sh --release` 后用同样方式替换。注意:一旦配置要开全隧道,先换回 fork 构建的 core,否则会踩回上游的路由环路/打洞失败等 bug。
 
 ## 开发
 
