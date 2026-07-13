@@ -1,0 +1,4 @@
+[submodule "vendor/EasyTier"]
+	path = vendor/EasyTier
+	url = git@github.com:XGFan/EasyTier.git
+	branch = releases/v2.6.4
