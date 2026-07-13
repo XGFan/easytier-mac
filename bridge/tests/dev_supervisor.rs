@@ -8,7 +8,7 @@
 //!
 //! If the supervisor/core binaries are missing (nobody built them), the test
 //! prints a hint and returns — it never fails for that reason. Build them with:
-//!   `cargo build -p easytier-supervisor -p easytier --bin easytier-core`
+//!   `cargo build -p easytier-supervisor && scripts/build-core.sh`
 
 use std::ffi::{CStr, CString, c_char, c_void};
 use std::path::{Path, PathBuf};
@@ -88,6 +88,12 @@ fn target_debug() -> PathBuf {
     }
 }
 
+/// easytier-core is not built in this workspace: scripts/build-core.sh puts it
+/// in the vendor submodule's own target dir (same default as bridge/src/install.rs).
+fn vendor_core_debug() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../vendor/EasyTier/target/debug")
+}
+
 /// Kill-on-drop guard around the supervisor child.
 struct Supervisor {
     child: Child,
@@ -151,10 +157,10 @@ fn no_tun_config() -> String {
 fn init_connect_status_disconnect_shutdown() {
     let debug = target_debug();
     let sup_bin = debug.join("easytier-supervisor");
-    let core_bin = debug.join("easytier-core");
+    let core_bin = vendor_core_debug().join("easytier-core");
     if !sup_bin.exists() || !core_bin.exists() {
         eprintln!(
-            "SKIP dev_supervisor: missing binaries.\n  supervisor: {} ({})\n  core: {} ({})\n  build: cargo build -p easytier-supervisor -p easytier --bin easytier-core",
+            "SKIP dev_supervisor: missing binaries.\n  supervisor: {} ({})\n  core: {} ({})\n  build: cargo build -p easytier-supervisor && scripts/build-core.sh",
             sup_bin.display(),
             sup_bin.exists(),
             core_bin.display(),
