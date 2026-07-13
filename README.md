@@ -49,7 +49,7 @@ fork 的 macOS 全隧道修复不改 RPC/配置面,且只在全隧道场景(`0.0
 前置:macOS 14+、Xcode(xcodebuild)、`brew install xcodegen protobuf`、Rust(版本由 `rust-toolchain.toml` 固定)。
 
 ```bash
-git clone --recurse-submodules <本仓库地址>
+git clone --recurse-submodules git@github.com:XGFan/easytier-mac.git
 cd easytier-mac
 
 # 1. 构建 easytier-core(在 vendor submodule 内,产物 vendor/EasyTier/target/release/)
