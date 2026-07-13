@@ -28,6 +28,10 @@ _Avoid_: 修复、格式化
 GUI 对唯一网络的启停：连接 = 拉起 Core 并运行配置对应的网络实例；断开 = 删除实例并停掉 Core（零常驻）。
 _Avoid_: 启动/停止网络实例（多实例时代的旧词）
 
+**面板（Panel）**：
+菜单栏图标点开的唯一 GUI 界面，承载主页面（状态/速率/节点）与二级设置页；应用没有主窗口。
+_Avoid_: 主窗口（已废除的旧形态）、托盘菜单
+
 **Bridge**：
 Rust cdylib，把 Supervisor 控制协议与 Core RPC 封装成小 C API 供 Swift 层调用；只提供机制（协议、RPC、校验、事件），不含策略（重启、恢复、设置归 Swift 层）。
 _Avoid_: FFI 层（泛指）、sidecar
