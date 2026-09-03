@@ -14,7 +14,7 @@ macOS 原生 EasyTier 客户端(SwiftUI 菜单栏 GUI + root supervisor),从 XGF
 
 ## 与 EasyTier fork 的关系
 
-- `vendor/EasyTier` submodule = `git@github.com:XGFan/EasyTier.git` 的 `releases/v2.6.4` 分支(fork = 上游 release + macOS 全隧道修复 + 尚未删除的 easytier-mac 旧副本)。fork 的本地 checkout 在 `~/Developer/Tool/EasyTier`,其维护流程(rebase 上游、rerere)见该仓库的 CLAUDE.md。
+- `vendor/EasyTier` submodule = `git@github.com:XGFan/EasyTier.git` 的 `releases/v2.6.4` 分支(fork = 上游 release + 3 个 macOS 全隧道修复 + 不变量守卫 + fork 工具/SOP + 文档,共 6 个 commit)。fork 的本地 checkout 在 `~/Developer/Tool/EasyTier`,其维护流程(rebase 上游、rerere)见该仓库的 CLAUDE.md。
 - **一个 pin,两个用途**:bridge 链接的 easytier 库和 supervisor 拉起的 easytier-core 二进制都出自这个 submodule,保证 RPC 协议匹配(ADR-0003)。core 二进制用 `scripts/build-core.sh` 构建,产物在 `vendor/EasyTier/target/`(submodule 自己的 workspace),不落在本仓库根 `target/`。
 - fork 修复不改 RPC/配置面且只在全隧道场景生效:非全隧道部署可用官方同版本 core(`scripts/fetch-official-core.sh`,产物 `target/official/`);全隧道必须用 fork 构建。
 - **升级流程**:fork rebase + push 后,`cd vendor/EasyTier && git fetch origin && git checkout origin/releases/v2.6.4`,回根目录重建验证,提交 gitlink。fork 分支是 force-push 的,**每次 bump 建议在 fork 侧给 pin 的 commit 打 tag 并 push**,防旧 commit 被 GC 后 submodule 拉不到。
