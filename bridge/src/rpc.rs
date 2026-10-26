@@ -9,8 +9,10 @@
 
 use std::sync::Mutex;
 
-use easytier::common::config::{ConfigLoader, ConfigSource, TomlConfigLoader};
-use easytier::launcher::NetworkConfig;
+use easytier::common::config::{
+    ConfigLoader, ConfigSource, NetworkConfig, NetworkConfigExt as _, TomlConfigLoader,
+    config_source_to_rpc,
+};
 use easytier::proto::api::instance::{
     InstanceIdentifier, ListPeerRequest, ListRouteRequest, PeerManageRpc,
     PeerManageRpcClientFactory, ShowNodeInfoRequest, instance_identifier::Selector,
@@ -20,14 +22,13 @@ use easytier::proto::api::manage::{
     DeleteNetworkInstanceRequest, RunNetworkInstanceRequest, WebClientService,
     WebClientServiceClientFactory,
 };
-use easytier::proto::rpc_impl::standalone::StandAloneClient;
+use easytier::proto::rpc::standalone::{RuntimeRpcClient, runtime_rpc_client};
 use easytier::proto::rpc_types::controller::BaseController;
-use easytier::tunnel::tcp::TcpTunnelConnector;
 use easytier::utils::PeerRoutePair;
 use serde::Serialize;
 use uuid::Uuid;
 
-type Client = StandAloneClient<TcpTunnelConnector>;
+type Client = RuntimeRpcClient;
 
 /// One row in the status table (a peer, or the local node).
 #[derive(Debug, Clone, Serialize)]
@@ -80,7 +81,7 @@ impl RpcClient {
         let url = format!("tcp://127.0.0.1:{port}")
             .parse()
             .map_err(|e| format!("invalid rpc url: {e}"))?;
-        Ok(StandAloneClient::new(TcpTunnelConnector::new(url)))
+        Ok(runtime_rpc_client(url))
     }
 
     async fn manage_client(
@@ -152,7 +153,7 @@ impl RpcClient {
                     inst_id: Some(inst_id.into()),
                     config: Some(config.clone()),
                     overwrite: true,
-                    source: ConfigSource::User.to_rpc(),
+                    source: config_source_to_rpc(ConfigSource::User),
                 },
             )
             .await
