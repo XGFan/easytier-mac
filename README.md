@@ -107,7 +107,7 @@ fork 侧(rebase 上游新 release 后 push)完成后,在本仓库:
 ```bash
 cd vendor/EasyTier
 git fetch origin
-git checkout origin/releases/v2.7.0        # 上游开新 release 分支时换成新分支名
+git checkout origin/releases/v2.7.1        # 上游开新 release 分支时换成新分支名
 cd ../..
 scripts/build-core.sh && cargo build -p easytier-mac-bridge   # 重建验证 API 兼容
 git add vendor/EasyTier
